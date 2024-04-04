@@ -3,12 +3,14 @@ package com.example.imageproject.service;
 import com.example.imageproject.domain.Image;
 import com.example.imageproject.exceptions.ImageDimensionValidationException;
 import com.example.imageproject.exceptions.ImageFormatValidationException;
+import com.example.imageproject.exceptions.ImageNameAlreadyExistsException;
 import com.example.imageproject.imageProcessors.ImageProcessor;
 import com.example.imageproject.repository.ImageRepository;
 import com.example.imageproject.utils.SecretKeyManager;
 import org.im4java.core.IM4JavaException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -60,6 +62,7 @@ public class ImageService {
             int height = heights.get(i);
             String format = extractFormat(name);
 
+            validateImageName(name);
             validateFileFormat(format, name);
             validateDimensions(width, height, name);
 
@@ -68,6 +71,13 @@ public class ImageService {
 
             Image imageToSave = createImageData(encryptedImage, name);
             saveImageToDatabase(imageToSave);
+        }
+    }
+
+    private void validateImageName(String imageName) {
+        if (imageRepository.existsByName(imageName)) {
+            throw new ImageNameAlreadyExistsException("The image name: " + imageName +
+                    " is already exists, please choose another one!");
         }
     }
 
@@ -118,5 +128,9 @@ public class ImageService {
         image.setData(encryptedImage);
         image.setName(imageName);
         return image;
+    }
+
+    public FileSystemResource loadImage(String imageName) {
+        return null;
     }
 }
