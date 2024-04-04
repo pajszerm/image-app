@@ -41,13 +41,21 @@ public class ImageService {
         this.secretKeyManager = secretKeyManager;
     }
 
-    public void processImages(List<MultipartFile> files, List<Integer> widths, List<Integer> heights) throws IOException, InterruptedException, IM4JavaException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+    public void processImages(List<MultipartFile> files, List<Integer> widths, List<Integer> heights) throws
+            IOException,
+            InterruptedException,
+            IM4JavaException,
+            NoSuchPaddingException,
+            IllegalBlockSizeException,
+            NoSuchAlgorithmException,
+            BadPaddingException,
+            InvalidKeyException {
         for (int i = 0; i < files.size(); i++) {
             MultipartFile file = files.get(i);
             String name = files.get(i).getOriginalFilename();
             int width = widths.get(i);
             int height = heights.get(i);
-            String format = name.substring(name.lastIndexOf('.') + 1);
+            String format = extractFormat(name);
 
             validateFileFormat(format);
             validateDimensions(width, height);
@@ -71,6 +79,15 @@ public class ImageService {
             throw new ImageDimensionValidationException("Invalid image dimensions. " +
                     "Maximum allowed dimensions are " + maxWidth + "x" + maxHeight + ".");
         }
+    }
+
+    private String extractFormat(String name) {
+        int dotIndex = name.lastIndexOf('.');
+        if (dotIndex == -1 || dotIndex == name.length() - 1) {
+            throw new IllegalArgumentException("Invalid file: " + name + ". " +
+                    "Only JPEG and PNG images are accepted.");
+        }
+        return name.substring(dotIndex + 1);
     }
 
     private byte[] resizeImage(byte[] imageData, int width, int height, String format) throws IOException, InterruptedException, IM4JavaException {
