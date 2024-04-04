@@ -8,6 +8,7 @@ import com.example.imageproject.repository.ImageRepository;
 import com.example.imageproject.utils.SecretKeyManager;
 import org.im4java.core.IM4JavaException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,6 +28,12 @@ public class ImageService {
 
     private final SecretKeyManager secretKeyManager;
 
+    @Value("${spring.image.max.width}")
+    private int maxWidth;
+
+    @Value("${spring.image.max.height}")
+    private int maxHeight;
+
     @Autowired
     public ImageService(ImageRepository imageRepository, ImageProcessor imageProcessor, SecretKeyManager secretKeyManager) {
         this.imageRepository = imageRepository;
@@ -34,63 +41,49 @@ public class ImageService {
         this.secretKeyManager = secretKeyManager;
     }
 
-    public void processImages(List<MultipartFile> files, List<Integer> widths, List<Integer> heights) throws IOException, InterruptedException, IM4JavaException {
+    public void processImages(List<MultipartFile> files, List<Integer> widths, List<Integer> heights) throws IOException, InterruptedException, IM4JavaException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
         for (int i = 0; i < files.size(); i++) {
             MultipartFile file = files.get(i);
             String name = files.get(i).getOriginalFilename();
             int width = widths.get(i);
             int height = heights.get(i);
 
-            try {
-                if (!isValidFileFormat(file)) {
-                    throw new ImageFormatValidationException("Invalid image format for file: " + name +
-                            ". Only JPG and PNG are accepted.");
-                }
+            validateFile(file, name);
+            validateDimensions(width, height);
 
-                if (!isValidDimensions(width, height)) {
-                    throw new ImageDimensionValidationException("Invalid image dimensions for file: " + name +
-                            ". It must be 5000 x 5000 or smaller.");
-                }
+            byte[] resizedImage = resizeImage(file.getBytes(), width, height);
+            byte[] encryptedImage = encryptImage(resizedImage);
 
-                byte[] resizedImage = resizeImage(file.getBytes(), width, height);
-
-                byte[] encryptedImage = encryptImage(resizedImage);
-
-                Image imageToSave = createImageData(encryptedImage, name);
-
-                saveImageToDatabase(imageToSave);
-            } catch (ImageFormatValidationException | ImageDimensionValidationException e) {
-                System.err.println("Error processing image: " + name + ". " + e.getMessage());
-                continue;
-            }
+            Image imageToSave = createImageData(encryptedImage, name);
+            saveImageToDatabase(imageToSave);
         }
     }
 
-    private boolean isValidFileFormat(MultipartFile file) {
+    private void validateFile(MultipartFile file, String name) {
         String contentType = file.getContentType();
-        return contentType != null && (contentType.equals("image/jpeg") || contentType.equals("image/png"));
+        if (contentType == null || !(contentType.equals("image/jpeg") || contentType.equals("image/png"))) {
+            throw new ImageFormatValidationException("Invalid image format for file: " + name + ". " +
+                    "Only JPG and PNG are accepted.");
+        }
     }
 
-    private boolean isValidDimensions(int width, int height) {
-        return width <= 5000 && height <= 5000;
+    private void validateDimensions(int width, int height) {
+        if (width > maxWidth || height > maxHeight) {
+            throw new ImageDimensionValidationException("Invalid image dimensions. " +
+                    "Maximum allowed dimensions are " + maxWidth + "x" + maxHeight + ".");
+        }
     }
 
     private byte[] resizeImage(byte[] imageData, int width, int height) throws IOException, InterruptedException, IM4JavaException {
         return imageProcessor.resizeImage(imageData, width, height);
     }
 
-    private byte[] encryptImage(byte[] resizedImage) {
-        try {
-            SecretKey secretKey = secretKeyManager.getSecretKey();
-            Cipher cipher = Cipher.getInstance("AES");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-            byte[] encryptedImageData = cipher.doFinal(resizedImage);
-            return encryptedImageData;
-        } catch (NoSuchAlgorithmException | InvalidKeyException | IllegalBlockSizeException | NoSuchPaddingException |
-                 BadPaddingException e) {
-            e.printStackTrace();
-            return null;
-        }
+    private byte[] encryptImage(byte[] resizedImage) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+        SecretKey secretKey = secretKeyManager.getSecretKey();
+        Cipher cipher = Cipher.getInstance("AES");
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        byte[] encryptedImageData = cipher.doFinal(resizedImage);
+        return encryptedImageData;
     }
 
     private void saveImageToDatabase(Image image) {
