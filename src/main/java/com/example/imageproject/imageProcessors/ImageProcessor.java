@@ -6,5 +6,5 @@ import java.io.IOException;
 
 public interface ImageProcessor {
 
-    byte[] resizeImage(byte[] imageData, int width, int height) throws IOException, InterruptedException, IM4JavaException;
+    byte[] resizeImage(byte[] imageData, int width, int height, String format) throws IOException, InterruptedException, IM4JavaException;
 }

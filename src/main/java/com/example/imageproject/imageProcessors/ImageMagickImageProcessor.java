@@ -8,7 +8,7 @@ public class ImageMagickImageProcessor implements ImageProcessor {
 
 
     @Override
-    public byte[] resizeImage(byte[] imageData, int width, int height) {
+    public byte[] resizeImage(byte[] imageData, int width, int height, String format) {
         return new byte[0];
     }
 }

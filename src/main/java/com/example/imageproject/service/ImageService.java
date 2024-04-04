@@ -47,11 +47,12 @@ public class ImageService {
             String name = files.get(i).getOriginalFilename();
             int width = widths.get(i);
             int height = heights.get(i);
+            String format = name.substring(name.lastIndexOf('.') + 1);
 
-            validateFile(file, name);
+            validateFileFormat(format);
             validateDimensions(width, height);
 
-            byte[] resizedImage = resizeImage(file.getBytes(), width, height);
+            byte[] resizedImage = resizeImage(file.getBytes(), width, height, format);
             byte[] encryptedImage = encryptImage(resizedImage);
 
             Image imageToSave = createImageData(encryptedImage, name);
@@ -59,11 +60,9 @@ public class ImageService {
         }
     }
 
-    private void validateFile(MultipartFile file, String name) {
-        String contentType = file.getContentType();
-        if (contentType == null || !(contentType.equals("image/jpeg") || contentType.equals("image/png"))) {
-            throw new ImageFormatValidationException("Invalid image format for file: " + name + ". " +
-                    "Only JPG and PNG are accepted.");
+    private void validateFileFormat(String format) {
+        if (!format.equals("jpeg") && !format.equals("png")) {
+            throw new ImageFormatValidationException("Invalid image format. Only JPEG and PNG are accepted.");
         }
     }
 
@@ -74,8 +73,8 @@ public class ImageService {
         }
     }
 
-    private byte[] resizeImage(byte[] imageData, int width, int height) throws IOException, InterruptedException, IM4JavaException {
-        return imageProcessor.resizeImage(imageData, width, height);
+    private byte[] resizeImage(byte[] imageData, int width, int height, String format) throws IOException, InterruptedException, IM4JavaException {
+        return imageProcessor.resizeImage(imageData, width, height, format);
     }
 
     private byte[] encryptImage(byte[] resizedImage) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {

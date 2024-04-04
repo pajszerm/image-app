@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URLConnection;
 
 
 @Component
@@ -16,7 +17,7 @@ import java.io.IOException;
 public class GraphicsMagickImageProcessor implements ImageProcessor {
 
     @Override
-    public byte[] resizeImage(byte[] imageData, int width, int height) throws IOException, InterruptedException, IM4JavaException {
+    public byte[] resizeImage(byte[] imageData, int width, int height, String format) throws IOException, InterruptedException, IM4JavaException {
         ByteArrayInputStream inputStream = new ByteArrayInputStream(imageData);
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -27,7 +28,7 @@ public class GraphicsMagickImageProcessor implements ImageProcessor {
         IMOperation op = new IMOperation();
         op.addImage("-");
         op.resize(width, height);
-        op.addImage("jpg:-");
+        op.addImage( format + ":-");
 
 
         cmd.setInputProvider(new org.im4java.process.Pipe(inputStream, null));
