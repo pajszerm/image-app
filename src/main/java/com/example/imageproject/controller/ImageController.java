@@ -46,4 +46,7 @@ public class ImageController {
         imageService.processImages(files, widths, heights);
         return ResponseEntity.ok("Images uploaded successfully.");
     }
+
+
+
 }

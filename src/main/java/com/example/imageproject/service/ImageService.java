@@ -17,6 +17,7 @@ import javax.crypto.*;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -33,6 +34,8 @@ public class ImageService {
 
     @Value("${spring.image.max.height}")
     private int maxHeight;
+
+    List<String> acceptableFormats = Arrays.asList("jpg", "jpeg", "png");
 
     @Autowired
     public ImageService(ImageRepository imageRepository, ImageProcessor imageProcessor, SecretKeyManager secretKeyManager) {
@@ -57,8 +60,8 @@ public class ImageService {
             int height = heights.get(i);
             String format = extractFormat(name);
 
-            validateFileFormat(format);
-            validateDimensions(width, height);
+            validateFileFormat(format, name);
+            validateDimensions(width, height, name);
 
             byte[] resizedImage = resizeImage(file.getBytes(), width, height, format);
             byte[] encryptedImage = encryptImage(resizedImage);
@@ -68,29 +71,33 @@ public class ImageService {
         }
     }
 
-    private void validateFileFormat(String format) {
-        if (!format.equals("jpeg") && !format.equals("png")) {
-            throw new ImageFormatValidationException("Invalid image format. Only JPEG and PNG are accepted.");
+    private void validateFileFormat(String format, String name) {
+        if (!acceptableFormats.contains(format.toLowerCase())) {
+            throw new ImageFormatValidationException("Invalid image format: " + name +
+                    ". Only JPEG, JPG, and PNG are accepted.");
         }
     }
 
-    private void validateDimensions(int width, int height) {
+    private void validateDimensions(int width, int height, String name) {
         if (width > maxWidth || height > maxHeight) {
-            throw new ImageDimensionValidationException("Invalid image dimensions. " +
-                    "Maximum allowed dimensions are " + maxWidth + "x" + maxHeight + ".");
+            throw new ImageDimensionValidationException("Invalid image dimensions: " + name +
+                    ". Maximum allowed dimensions are " + maxWidth + "x" + maxHeight + ".");
         }
     }
 
     private String extractFormat(String name) {
         int dotIndex = name.lastIndexOf('.');
         if (dotIndex == -1 || dotIndex == name.length() - 1) {
-            throw new IllegalArgumentException("Invalid file: " + name + ". " +
-                    "Only JPEG and PNG images are accepted.");
+            throw new IllegalArgumentException("Invalid file: " + name +
+                    ". Only JPEG, JPG and PNG images are accepted.");
         }
         return name.substring(dotIndex + 1);
     }
 
-    private byte[] resizeImage(byte[] imageData, int width, int height, String format) throws IOException, InterruptedException, IM4JavaException {
+    private byte[] resizeImage(byte[] imageData, int width, int height, String format) throws
+            IOException,
+            InterruptedException,
+            IM4JavaException {
         return imageProcessor.resizeImage(imageData, width, height, format);
     }
 
