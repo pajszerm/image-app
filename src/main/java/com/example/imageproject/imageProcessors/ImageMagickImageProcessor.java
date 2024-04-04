@@ -1,9 +1,10 @@
 package com.example.imageproject.imageProcessors;
 
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ImageMagickImageProcessor implements ImageProcessor{
+public class ImageMagickImageProcessor implements ImageProcessor {
 
 
     @Override
@@ -11,3 +12,4 @@ public class ImageMagickImageProcessor implements ImageProcessor{
         return new byte[0];
     }
 }
+

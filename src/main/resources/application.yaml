@@ -1,6 +1,9 @@
 server:
   port: 8080
 spring:
+  key:
+    file:
+      path: src/main/resources/AES_KEY.key
   datasource:
     url: jdbc:postgresql://localhost:5432/image-app?&serverTimezone=UTC&ssl-mode=REQUIRED
     username: postgres
