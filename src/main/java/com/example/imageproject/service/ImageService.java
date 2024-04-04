@@ -1,6 +1,8 @@
 package com.example.imageproject.service;
 
 import com.example.imageproject.domain.Image;
+import com.example.imageproject.exceptions.ImageDimensionValidationException;
+import com.example.imageproject.exceptions.ImageFormatValidationException;
 import com.example.imageproject.imageProcessors.ImageProcessor;
 import com.example.imageproject.repository.ImageRepository;
 import com.example.imageproject.utils.SecretKeyManager;
@@ -39,15 +41,38 @@ public class ImageService {
             int width = widths.get(i);
             int height = heights.get(i);
 
-            byte[] resizedImage = resizeImage(file.getBytes(), width, height);
+            try {
+                if (!isValidFileFormat(file)) {
+                    throw new ImageFormatValidationException("Invalid image format for file: " + name +
+                            ". Only JPG and PNG are accepted.");
+                }
 
-            byte[] encryptedImage = encryptImage(resizedImage);
+                if (!isValidDimensions(width, height)) {
+                    throw new ImageDimensionValidationException("Invalid image dimensions for file: " + name +
+                            ". It must be 5000 x 5000 or smaller.");
+                }
 
-            Image imageToSave = createImageData(encryptedImage, name);
+                byte[] resizedImage = resizeImage(file.getBytes(), width, height);
 
-            saveImageToDatabase(imageToSave);
+                byte[] encryptedImage = encryptImage(resizedImage);
+
+                Image imageToSave = createImageData(encryptedImage, name);
+
+                saveImageToDatabase(imageToSave);
+            } catch (ImageFormatValidationException | ImageDimensionValidationException e) {
+                System.err.println("Error processing image: " + name + ". " + e.getMessage());
+                continue;
+            }
         }
+    }
 
+    private boolean isValidFileFormat(MultipartFile file) {
+        String contentType = file.getContentType();
+        return contentType != null && (contentType.equals("image/jpeg") || contentType.equals("image/png"));
+    }
+
+    private boolean isValidDimensions(int width, int height) {
+        return width <= 5000 && height <= 5000;
     }
 
     private byte[] resizeImage(byte[] imageData, int width, int height) throws IOException, InterruptedException, IM4JavaException {
