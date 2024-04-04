@@ -39,6 +39,8 @@ public class ImageService {
 
     List<String> acceptableFormats = Arrays.asList("jpg", "jpeg", "png");
 
+    private static final String ALGORITHM = "AES";
+
     @Autowired
     public ImageService(ImageRepository imageRepository, ImageProcessor imageProcessor, SecretKeyManager secretKeyManager) {
         this.imageRepository = imageRepository;
@@ -111,12 +113,30 @@ public class ImageService {
         return imageProcessor.resizeImage(imageData, width, height, format);
     }
 
-    private byte[] encryptImage(byte[] resizedImage) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+    private byte[] encryptImage(byte[] resizedImage) throws
+            NoSuchPaddingException,
+            NoSuchAlgorithmException,
+            InvalidKeyException,
+            IllegalBlockSizeException,
+            BadPaddingException {
         SecretKey secretKey = secretKeyManager.getSecretKey();
-        Cipher cipher = Cipher.getInstance("AES");
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
         cipher.init(Cipher.ENCRYPT_MODE, secretKey);
         byte[] encryptedImageData = cipher.doFinal(resizedImage);
         return encryptedImageData;
+    }
+
+    private byte[] decryptImage(byte[] imageToDecrypt) throws
+            NoSuchPaddingException,
+            NoSuchAlgorithmException,
+            InvalidKeyException,
+            IllegalBlockSizeException,
+            BadPaddingException {
+        SecretKey secretKey = secretKeyManager.getSecretKey();
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey);
+        byte[] decryptedImageData = cipher.doFinal(imageToDecrypt);
+        return decryptedImageData;
     }
 
     private void saveImageToDatabase(Image image) {
@@ -131,6 +151,7 @@ public class ImageService {
     }
 
     public FileSystemResource loadImage(String imageName) {
+        Image imageToLoad = imageRepository.findByName(imageName);
         return null;
     }
 }
