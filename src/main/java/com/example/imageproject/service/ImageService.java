@@ -10,13 +10,14 @@ import com.example.imageproject.utils.SecretKeyManager;
 import org.im4java.core.IM4JavaException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.crypto.*;
 import java.io.IOException;
+
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -150,8 +151,16 @@ public class ImageService {
         return image;
     }
 
-    public FileSystemResource loadImage(String imageName) {
+
+    public ByteArrayResource loadImageInByteArray(String imageName) throws
+            NoSuchPaddingException,
+            IllegalBlockSizeException,
+            NoSuchAlgorithmException,
+            BadPaddingException,
+            InvalidKeyException {
         Image imageToLoad = imageRepository.findByName(imageName);
-        return null;
+        byte[] decryptedImageData = decryptImage(imageToLoad.getData());
+        ByteArrayResource byteArrayResource = new ByteArrayResource(decryptedImageData);
+        return byteArrayResource;
     }
 }
