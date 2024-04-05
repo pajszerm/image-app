@@ -43,3 +43,4 @@ GET api/files -> downloading all images in zip format
 - At the start of the application it checks whether an AFS Key file is exists and generates it if not.
 - When uploading images, all images must have a width and a height to be resized to.
 - Only different named images can be stored in the database.
+- Images only with JPG, JPEG, and PNG formats can be uploaded.
