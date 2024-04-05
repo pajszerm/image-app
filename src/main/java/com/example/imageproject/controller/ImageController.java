@@ -5,6 +5,9 @@ import com.example.imageproject.service.ImageService;
 import org.im4java.core.IM4JavaException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -46,7 +49,7 @@ public class ImageController {
         return ResponseEntity.ok("Images uploaded successfully.");
     }
 
-    @GetMapping(value = "file/{imageName}")
+    @GetMapping("file/{imageName}")
     public ResponseEntity<ByteArrayResource> loadImage(@PathVariable("imageName") String imageName) throws
             NoSuchPaddingException,
             IllegalBlockSizeException,
@@ -57,6 +60,29 @@ public class ImageController {
         return ResponseEntity.ok()
                 .contentType(loadImageDto.getMediaType())
                 .body(loadImageDto.getByteArrayResource());
+    }
+
+    @GetMapping("/files")
+    public ResponseEntity<Resource> loadAllImagesInZip() throws
+            NoSuchPaddingException,
+            IllegalBlockSizeException,
+            IOException,
+            NoSuchAlgorithmException,
+            BadPaddingException,
+            InvalidKeyException {
+        ByteArrayResource zipResource = imageService.zipAllImages();
+
+        if (zipResource != null) {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", "images.zip");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(zipResource);
+        } else {
+            return ResponseEntity.noContent().build();
+        }
     }
 
 }

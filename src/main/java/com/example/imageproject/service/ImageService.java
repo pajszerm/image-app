@@ -13,11 +13,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.crypto.*;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import java.security.InvalidKeyException;
@@ -26,6 +28,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 @Transactional
@@ -184,5 +188,32 @@ public class ImageService {
     private MediaType setMediaType(String imageName) {
         String format = extractFormat(imageName);
         return FORMAT_MEDIA_TYPE_MAP.getOrDefault(format.toLowerCase(), MediaType.IMAGE_JPEG);
+    }
+
+    public ByteArrayResource zipAllImages() throws
+            IOException,
+            NoSuchPaddingException,
+            IllegalBlockSizeException,
+            NoSuchAlgorithmException,
+            BadPaddingException,
+            InvalidKeyException {
+        List<Image> images = imageRepository.findAll();
+
+        if (images.isEmpty()) {
+            return null;
+        }
+
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream);
+        for (Image image : images) {
+            ZipEntry zipEntry = new ZipEntry(image.getName());
+            zipOutputStream.putNextEntry(zipEntry);
+            zipOutputStream.write(decryptImage(image.getData()));
+            zipOutputStream.closeEntry();
+            zipOutputStream.close();
+        }
+
+        ByteArrayResource zipResource = new ByteArrayResource(byteArrayOutputStream.toByteArray());
+        return zipResource;
     }
 }
