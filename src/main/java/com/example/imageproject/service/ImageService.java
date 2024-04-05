@@ -1,6 +1,7 @@
 package com.example.imageproject.service;
 
 import com.example.imageproject.domain.Image;
+import com.example.imageproject.domain.dto.LoadImageDto;
 import com.example.imageproject.exceptions.ImageDimensionValidationException;
 import com.example.imageproject.exceptions.ImageFormatValidationException;
 import com.example.imageproject.exceptions.ImageNameAlreadyExistsException;
@@ -11,6 +12,7 @@ import org.im4java.core.IM4JavaException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,7 +23,9 @@ import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -38,9 +42,17 @@ public class ImageService {
     @Value("${spring.image.max.height}")
     private int maxHeight;
 
-    List<String> acceptableFormats = Arrays.asList("jpg", "jpeg", "png");
+    private static final List<String> ACCEPTABLE_FORMATS = Arrays.asList("jpg", "jpeg", "png");
 
     private static final String ALGORITHM = "AES";
+
+    private static final Map<String, MediaType> FORMAT_MEDIA_TYPE_MAP = new HashMap<>();
+
+    static {
+        FORMAT_MEDIA_TYPE_MAP.put("jpg", MediaType.IMAGE_JPEG);
+        FORMAT_MEDIA_TYPE_MAP.put("jpeg", MediaType.IMAGE_JPEG);
+        FORMAT_MEDIA_TYPE_MAP.put("png", MediaType.IMAGE_PNG);
+    }
 
     @Autowired
     public ImageService(ImageRepository imageRepository, ImageProcessor imageProcessor, SecretKeyManager secretKeyManager) {
@@ -85,7 +97,7 @@ public class ImageService {
     }
 
     private void validateFileFormat(String format, String name) {
-        if (!acceptableFormats.contains(format.toLowerCase())) {
+        if (!ACCEPTABLE_FORMATS.contains(format.toLowerCase())) {
             throw new ImageFormatValidationException("Invalid image format: " + name +
                     ". Only JPEG, JPG, and PNG are accepted.");
         }
@@ -152,7 +164,7 @@ public class ImageService {
     }
 
 
-    public ByteArrayResource loadImageInByteArray(String imageName) throws
+    public LoadImageDto loadImageInByteArray(String imageName) throws
             NoSuchPaddingException,
             IllegalBlockSizeException,
             NoSuchAlgorithmException,
@@ -161,6 +173,12 @@ public class ImageService {
         Image imageToLoad = imageRepository.findByName(imageName);
         byte[] decryptedImageData = decryptImage(imageToLoad.getData());
         ByteArrayResource byteArrayResource = new ByteArrayResource(decryptedImageData);
-        return byteArrayResource;
+        MediaType mediaType = setMediaType(imageName);
+        return new LoadImageDto(byteArrayResource, mediaType);
+    }
+
+    private MediaType setMediaType(String imageName) {
+        String format = extractFormat(imageName);
+        return FORMAT_MEDIA_TYPE_MAP.getOrDefault(format.toLowerCase(), MediaType.IMAGE_JPEG);
     }
 }

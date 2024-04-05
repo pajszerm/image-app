@@ -1,10 +1,10 @@
 package com.example.imageproject.controller;
 
+import com.example.imageproject.domain.dto.LoadImageDto;
 import com.example.imageproject.service.ImageService;
 import org.im4java.core.IM4JavaException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -46,15 +46,17 @@ public class ImageController {
         return ResponseEntity.ok("Images uploaded successfully.");
     }
 
-    @GetMapping(value = "file/{imageName}", produces = MediaType.IMAGE_JPEG_VALUE)
+    @GetMapping(value = "file/{imageName}")
     public ResponseEntity<ByteArrayResource> loadImage(@PathVariable("imageName") String imageName) throws
             NoSuchPaddingException,
             IllegalBlockSizeException,
             NoSuchAlgorithmException,
             BadPaddingException,
             InvalidKeyException {
-        ByteArrayResource byteArrayResource = imageService.loadImageInByteArray(imageName);
-        return ResponseEntity.ok(byteArrayResource);
+        LoadImageDto loadImageDto = imageService.loadImageInByteArray(imageName);
+        return ResponseEntity.ok()
+                .contentType(loadImageDto.getMediaType())
+                .body(loadImageDto.getByteArrayResource());
     }
 
 }
