@@ -210,9 +210,8 @@ public class ImageService {
             zipOutputStream.putNextEntry(zipEntry);
             zipOutputStream.write(decryptImage(image.getData()));
             zipOutputStream.closeEntry();
-            zipOutputStream.close();
         }
-
+        zipOutputStream.close();
         ByteArrayResource zipResource = new ByteArrayResource(byteArrayOutputStream.toByteArray());
         return zipResource;
     }
