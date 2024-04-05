@@ -73,8 +73,8 @@ public class ImageService {
         for (int i = 0; i < files.size(); i++) {
             MultipartFile file = files.get(i);
             String name = files.get(i).getOriginalFilename();
-            int width = widths.get(i);
-            int height = heights.get(i);
+            int width = (widths != null && widths.size() > i) ? widths.get(i) : 5000;
+            int height = (heights != null && heights.size() > i) ? heights.get(i) : 5000;
             String format = extractFormat(name);
 
             validateImageName(name);
@@ -104,6 +104,10 @@ public class ImageService {
     }
 
     private void validateDimensions(int width, int height, String name) {
+        if ((width == 5000 && height != 5000) || (width != 5000 && height == 5000)) {
+            throw new IllegalArgumentException("Both width and height must be provided or both set to default.");
+        }
+
         if (width > maxWidth || height > maxHeight) {
             throw new ImageDimensionValidationException("Invalid image dimensions: " + name +
                     ". Maximum allowed dimensions are " + maxWidth + "x" + maxHeight + ".");
