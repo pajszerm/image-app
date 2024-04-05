@@ -21,7 +21,7 @@ Create a new project in IntelliJ IDEA with "Starting new project from version co
 
 https://github.com/pajszerm/image-app.git
 
-Install [GraphicsMagick](http://www.graphicsmagick.org/index.html). If your IDE was running, restart it after the installation.
+Install GraphicsMagick from this site: http://www.graphicsmagick.org/index.html. If your IDE was running, restart it after the installation.
 
 Reload all Maven projects and start the backend using the IDE built in functionality.
 
@@ -43,6 +43,6 @@ GET api/files -> downloading all images in zip format
 
 - The application is compatible with ImageMagick and GraphicsMagick to resize images. You can set wich ImageProcessor to use with the @Primary annotation. Also only the GraphicsMagick is implemented yet.
 - At the start of the application it checks whether an AFS Key file is exists and generates it if not.
-- When uploading images, all images must have a width and a height to be resized to.
-- Only different named images can be stored in the database.
+- When uploading images it is required to specify the target width and height and the images will be resized accordingly. If the data is not correct, no image will be uploaded.
+- Each image must have a different name, if there is an error, no image will be uploaded.
 - Images only with JPG, JPEG, and PNG formats can be uploaded.
