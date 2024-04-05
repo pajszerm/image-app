@@ -33,4 +33,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to load image: " + ex.getMessage());
     }
 
+    @ExceptionHandler(MissingDataException.class)
+    public ResponseEntity<String> handleMissingDataException(MissingDataException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to upload images: " + ex.getMessage());
+    }
+
 }

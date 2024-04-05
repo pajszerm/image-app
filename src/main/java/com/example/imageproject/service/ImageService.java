@@ -5,6 +5,7 @@ import com.example.imageproject.domain.dto.LoadImageDto;
 import com.example.imageproject.exceptions.ImageDimensionValidationException;
 import com.example.imageproject.exceptions.ImageFormatValidationException;
 import com.example.imageproject.exceptions.ImageNameAlreadyExistsException;
+import com.example.imageproject.exceptions.MissingDataException;
 import com.example.imageproject.imageProcessors.ImageProcessor;
 import com.example.imageproject.repository.ImageRepository;
 import com.example.imageproject.utils.SecretKeyManager;
@@ -20,7 +21,6 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.crypto.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -44,6 +44,8 @@ public class ImageService {
 
     @Value("${spring.image.max.height}")
     private int maxHeight;
+
+    private final int MIN_DIMENSION = 0;
 
     private static final List<String> ACCEPTABLE_FORMATS = Arrays.asList("jpg", "jpeg", "png");
 
@@ -73,11 +75,14 @@ public class ImageService {
             NoSuchAlgorithmException,
             BadPaddingException,
             InvalidKeyException {
+
+        validateData(files, widths, heights);
+
         for (int i = 0; i < files.size(); i++) {
             MultipartFile file = files.get(i);
             String name = files.get(i).getOriginalFilename();
-            int width = (widths != null && widths.size() > i) ? widths.get(i) : 5000;
-            int height = (heights != null && heights.size() > i) ? heights.get(i) : 5000;
+            int width = widths.get(i);
+            int height = heights.get(i);
             String format = extractFormat(name);
 
             validateImageName(name);
@@ -89,6 +94,26 @@ public class ImageService {
 
             Image imageToSave = createImageData(encryptedImage, name);
             saveImageToDatabase(imageToSave);
+        }
+    }
+
+    private void validateData(List<MultipartFile> files, List<Integer> widths, List<Integer> heights) {
+        String exceptionMessage = "Each image must have both width and height specified.";
+        if (files == null || widths == null || heights == null) {
+            throw new MissingDataException(exceptionMessage);
+        }
+        if (files.size() != widths.size() || files.size() != heights.size()) {
+            throw new MissingDataException(exceptionMessage);
+        }
+        for (Integer width : widths) {
+            if (width == null) {
+                throw new MissingDataException(exceptionMessage);
+            }
+        }
+        for (Integer height : heights) {
+            if (height == null) {
+                throw new MissingDataException(exceptionMessage);
+            }
         }
     }
 
@@ -107,8 +132,9 @@ public class ImageService {
     }
 
     private void validateDimensions(int width, int height, String name) {
-        if ((width == 5000 && height != 5000) || (width != 5000 && height == 5000)) {
-            throw new IllegalArgumentException("Both width and height must be provided or both set to default.");
+        if (width <= MIN_DIMENSION || height <= MIN_DIMENSION) {
+            throw new ImageDimensionValidationException("Invalid image dimensions: " + name +
+                    ". Width and height must be greater than 0.");
         }
 
         if (width > maxWidth || height > maxHeight) {
@@ -142,8 +168,7 @@ public class ImageService {
         SecretKey secretKey = secretKeyManager.getSecretKey();
         Cipher cipher = Cipher.getInstance(ALGORITHM);
         cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-        byte[] encryptedImageData = cipher.doFinal(resizedImage);
-        return encryptedImageData;
+        return cipher.doFinal(resizedImage);
     }
 
     private byte[] decryptImage(byte[] imageToDecrypt) throws
@@ -155,8 +180,7 @@ public class ImageService {
         SecretKey secretKey = secretKeyManager.getSecretKey();
         Cipher cipher = Cipher.getInstance(ALGORITHM);
         cipher.init(Cipher.DECRYPT_MODE, secretKey);
-        byte[] decryptedImageData = cipher.doFinal(imageToDecrypt);
-        return decryptedImageData;
+        return cipher.doFinal(imageToDecrypt);
     }
 
     private void saveImageToDatabase(Image image) {
@@ -198,20 +222,18 @@ public class ImageService {
             InvalidKeyException {
         List<Image> images = imageRepository.findAll();
 
-        if (images.isEmpty()) {
-            return null;
+        if (!images.isEmpty()) {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream);
+            for (Image image : images) {
+                ZipEntry zipEntry = new ZipEntry(image.getName());
+                zipOutputStream.putNextEntry(zipEntry);
+                zipOutputStream.write(decryptImage(image.getData()));
+                zipOutputStream.closeEntry();
+            }
+            zipOutputStream.close();
+            return new ByteArrayResource(byteArrayOutputStream.toByteArray());
         }
-
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream);
-        for (Image image : images) {
-            ZipEntry zipEntry = new ZipEntry(image.getName());
-            zipOutputStream.putNextEntry(zipEntry);
-            zipOutputStream.write(decryptImage(image.getData()));
-            zipOutputStream.closeEntry();
-        }
-        zipOutputStream.close();
-        ByteArrayResource zipResource = new ByteArrayResource(byteArrayOutputStream.toByteArray());
-        return zipResource;
+        return null;
     }
 }
