@@ -1,6 +1,6 @@
 # Image-app
 
-Image-app is a Rest API, that is capable of storing and resizing images, download specific image or all of the images.
+Image-app is a Rest API, that is capable of resizing images and storing them encrypted in database. Also specific images or all images can be downloaded with it.
 
 ## Installation
 
@@ -21,6 +21,8 @@ Create a new project in IntelliJ IDEA with "Starting new project from version co
 
 https://github.com/pajszerm/image-app.git
 
+Install [GraphicsMagick](http://www.graphicsmagick.org/index.html). If your IDE was running, restart it after the installation.
+
 Reload all Maven projects and start the backend using the IDE built in functionality.
 
 ## Endpoints
@@ -31,15 +33,15 @@ GET api/file/<image.name> -> downloading specific image
 
 GET api/files -> downloading all images in zip format
 
-## Backend
+## Technologies
 
 - Java version 17
 - SpringBoot version 3.2.4
 - Database: PostgreSQL
 
-## Specifications:
+## Details
 
-- The application is compatible with ImageMagick and GraphicsMagick to resize images. You can set wich ImageProcessor to use with the @Primary annotation.
+- The application is compatible with ImageMagick and GraphicsMagick to resize images. You can set wich ImageProcessor to use with the @Primary annotation. Also only the GraphicsMagick is implemented yet.
 - At the start of the application it checks whether an AFS Key file is exists and generates it if not.
 - When uploading images, all images must have a width and a height to be resized to.
 - Only different named images can be stored in the database.
